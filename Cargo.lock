@@ -22,7 +22,7 @@ dependencies = [
 
 [[package]]
 name = "qshell"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "sh-macro",
 ]
@@ -38,7 +38,7 @@ dependencies = [
 
 [[package]]
 name = "sh-macro"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "litrs",
  "proc-macro2",
