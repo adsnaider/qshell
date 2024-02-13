@@ -73,7 +73,9 @@ impl From<TokenTree> for ShTokenTree {
                     litrs::Literal::Bool(b) => b.to_string(),
                     litrs::Literal::Integer(i) => i.to_string(),
                     litrs::Literal::Float(f) => f.to_string(),
-                    litrs::Literal::Char(c) => c.value().to_string(),
+                    litrs::Literal::Char(c) => {
+                        unimplemented!("Character literals are not implemented")
+                    }
                     litrs::Literal::String(s) => s.into_value().into_owned(),
                     litrs::Literal::Byte(_b) => unimplemented!("Byte literals are not implemented"),
                     litrs::Literal::ByteString(_s) => {

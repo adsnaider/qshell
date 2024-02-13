@@ -65,8 +65,5 @@ mod tests {
 
         sh!(echo true > {out});
         assert_eq!(out, "true\n");
-
-        sh!(echo 'a' 'b' > {out});
-        assert_eq!(out, "a b\n");
     }
 }
