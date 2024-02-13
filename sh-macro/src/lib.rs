@@ -67,7 +67,21 @@ impl From<TokenTree> for ShTokenTree {
             TokenTree::Punct(c) if c.as_char() == '>' => ShTokenTree::Sink,
             TokenTree::Punct(c) if c.as_char() == '<' => ShTokenTree::Source,
             TokenTree::Punct(c) => panic!("Unexpected token: {c}"),
-            TokenTree::Literal(value) => ShTokenTree::Value(value.to_string()),
+            TokenTree::Literal(value) => {
+                let literal = litrs::Literal::from(value);
+                let value = match literal {
+                    litrs::Literal::Bool(b) => b.to_string(),
+                    litrs::Literal::Integer(i) => i.to_string(),
+                    litrs::Literal::Float(f) => f.to_string(),
+                    litrs::Literal::Char(c) => c.value().to_string(),
+                    litrs::Literal::String(s) => s.into_value().into_owned(),
+                    litrs::Literal::Byte(_b) => unimplemented!("Byte literals are not implemented"),
+                    litrs::Literal::ByteString(_s) => {
+                        unimplemented!("Byte literals are not implemented")
+                    }
+                };
+                ShTokenTree::Value(value)
+            }
         }
     }
 }
@@ -219,7 +233,7 @@ impl ShParser {
 /// # run();
 /// ```
 ///
-/// ```
+/// ```no_run
 /// # use sh_macro::sh;
 /// # #[cfg(target_os = "linux")]
 /// # fn run() {
@@ -228,6 +242,19 @@ impl ShParser {
 ///   sleep 5;
 ///   echo world;
 /// }; // prints hello, waits 5 seconds, prints world.
+/// # }
+/// # run();
+/// ```
+///
+/// You can also use string literals as needed
+///
+/// ```
+/// # use sh_macro::sh;
+/// # #[cfg(target_os = "linux")]
+/// # fn run() {
+/// let mut out = String::new();
+/// sh!(echo "hello world" > {out});
+/// assert_eq!(out, "hello world\n");
 /// # }
 /// # run();
 /// ```
