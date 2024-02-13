@@ -1,8 +1,4 @@
-//! A command-running macro.
-//!
-//! `sh` is a macro for running external commands. It provides functionality to
-//! pipe the input and output to variables as well as using rust expressions
-//! as arguments to the program.
+#![doc = include_str!("../README.md")]
 //!
 //! # Examples
 //!
@@ -29,6 +25,9 @@
 //! # }
 //! # run();
 //! ```
+//!
+//! For more information, see the documentation for
+//! [`sh`].
 pub use sh_macro::sh;
 
 #[cfg(test)]
