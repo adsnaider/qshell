@@ -313,6 +313,7 @@ impl ToTokens for Sh {
             }
             Some(Sink::Var(ident)) => tokens.append_all(quote! {
                 cmd.stdout(Stdio::piped());
+                #ident.clear();
                 sink = Some(&mut #ident);
             }),
             None => {}
