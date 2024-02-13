@@ -179,6 +179,64 @@ impl ShParser {
     }
 }
 
+/// A command-running macro.
+///
+/// `sh` is a macro for running external commands. It provides functionality to
+/// pipe the input and output to variables as well as using rust expressions
+/// as arguments to the program.
+///
+/// The format of an `sh` call is like so:
+///
+/// ```ignore
+/// sh!( [prog] [arg]* [> {outvar}]? [< {invar}]? [;]? )
+/// ```
+///
+/// Or you can run multiple commands on a single block
+///
+/// ```ignore
+/// sh! {
+///   [prog] [arg]* [> {outvar}]? [< {invar}]? ;
+///   [prog] [arg]* [> {outvar}]? [< {invar}]? ;
+///   [prog] [arg]* [> {outvar}]? [< {invar}]? [;]?
+/// }
+/// ```
+///
+/// Arguments are allowed to take the form of identifiers (i.e. plain text),
+/// literals (numbers, quoted strings, characters, etc.), or rust expressions
+/// delimited by braces.
+///
+/// # Examples
+///
+/// ```
+/// # use sh::sh;
+/// # #[cfg(target_os = "linux")]
+/// # fn run() {
+/// let world = "world";
+/// let mut out = String::new();
+/// sh!(echo hello {world} > {out});
+/// assert_eq!(out, "hello world\n");
+/// # }
+/// # run();
+/// ```
+///
+/// ```
+/// # use sh::sh;
+/// # #[cfg(target_os = "linux")]
+/// # fn run() {
+/// sh! {
+///   echo hello;
+///   sleep 5;
+///   echo world;
+/// }; // prints hello, waits 5 seconds, prints world.
+/// # }
+/// # run();
+/// ```
+///
+/// # Panics
+///
+/// * When the command can't be spawned
+/// * When there is an error writing into the command pipe
+/// * When the output pipe can't be decoded as a UTF-8 string.
 #[proc_macro]
 pub fn sh(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let stream: TokenStream = stream.into();
