@@ -1,12 +1,4 @@
-workspace = { members = ["sh-macro"] }
-[package]
-name = "sh"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
-keywords = ["cli", "macro", "shell"]
+[workspace]
+members = ["qshell", "sh-macro"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-sh-macro = { path = "./sh-macro" }
+resolver = "2"

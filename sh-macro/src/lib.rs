@@ -208,7 +208,7 @@ impl ShParser {
 /// # Examples
 ///
 /// ```
-/// # use sh::sh;
+/// # use sh_macro::sh;
 /// # #[cfg(target_os = "linux")]
 /// # fn run() {
 /// let world = "world";
@@ -220,7 +220,7 @@ impl ShParser {
 /// ```
 ///
 /// ```
-/// # use sh::sh;
+/// # use sh_macro::sh;
 /// # #[cfg(target_os = "linux")]
 /// # fn run() {
 /// sh! {

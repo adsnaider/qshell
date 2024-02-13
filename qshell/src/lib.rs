@@ -1,9 +1,9 @@
-#![doc = include_str!("../README.md")]
+#![doc = include_str!("../../README.md")]
 //!
 //! # Examples
 //!
 //! ```
-//! # use sh::sh;
+//! # use qshell::sh;
 //! # #[cfg(target_os = "linux")]
 //! # fn run() {
 //! let world = "world";
@@ -15,7 +15,7 @@
 //! ```
 //!
 //! ```
-//! # use sh::sh;
+//! # use qshell::sh;
 //! # #[cfg(target_os = "linux")]
 //! # fn run() {
 //! let world = "world";
