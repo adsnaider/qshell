@@ -27,8 +27,18 @@
 //! ```
 //!
 //! For more information, see the documentation for
-//! [`sh`].
-pub use sh_macro::sh;
+//! [`cmd`].
+pub use qcmd::QCmd;
+pub use sh_macro::cmd;
+
+#[macro_export]
+macro_rules! sh {
+    ($($stream:tt)*) => {
+        sh_macro::cmd!($($stream)*)
+            .into_iter()
+            .for_each(|cmd| cmd.exec().unwrap());
+    };
+}
 
 #[cfg(test)]
 #[cfg(target_os = "linux")]
@@ -45,7 +55,7 @@ mod tests {
 
     #[test]
     fn multiple() {
-        sh! {
+        cmd! {
             echo hello world;
             echo hello world;
         };

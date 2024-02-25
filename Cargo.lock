@@ -21,9 +21,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "qcmd"
+version = "0.1.1"
+
+[[package]]
 name = "qshell"
 version = "0.1.1"
 dependencies = [
+ "qcmd",
  "sh-macro",
 ]
 
@@ -42,6 +47,7 @@ version = "0.1.1"
 dependencies = [
  "litrs",
  "proc-macro2",
+ "qcmd",
  "quote",
 ]
 

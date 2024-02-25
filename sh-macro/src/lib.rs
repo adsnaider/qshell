@@ -42,7 +42,7 @@ struct ShParser {
     source: Option<Source>,
 }
 
-struct Sh {
+struct Cmd {
     cmd: String,
     args: Vec<Arg>,
     sink: Option<Sink>,
@@ -91,7 +91,7 @@ impl From<TokenTree> for ShTokenTree {
 #[must_use]
 enum ParseResult {
     KeepGoing,
-    Done(Sh),
+    Done(Cmd),
 }
 
 impl Default for ShParser {
@@ -176,7 +176,7 @@ impl ShParser {
         ParseResult::KeepGoing
     }
 
-    fn finish(mut self) -> Option<Sh> {
+    fn finish(mut self) -> Option<Cmd> {
         if self.cmd.is_some() {
             Some(self.into_sh())
         } else {
@@ -184,9 +184,9 @@ impl ShParser {
         }
     }
 
-    fn into_sh(&mut self) -> Sh {
+    fn into_sh(&mut self) -> Cmd {
         let mut parser = std::mem::take(self);
-        Sh {
+        Cmd {
             cmd: parser.cmd.take().expect("Missing command"),
             args: parser.args,
             sink: parser.sink,
@@ -201,16 +201,16 @@ impl ShParser {
 /// pipe the input and output to variables as well as using rust expressions
 /// as arguments to the program.
 ///
-/// The format of an `sh` call is like so:
+/// The format of a `cmd` call is like so:
 ///
 /// ```ignore
-/// sh!( [prog] [arg]* [> {outvar}]? [< {invar}]? [;]? )
+/// cmd!( [prog] [arg]* [> {outvar}]? [< {invar}]? [;]? )
 /// ```
 ///
-/// Or you can run multiple commands on a single block
+/// Or you can create multiple commands on a single block
 ///
 /// ```ignore
-/// sh! {
+/// cmd! {
 ///   [prog] [arg]* [> {outvar}]? [< {invar}]? ;
 ///   [prog] [arg]* [> {outvar}]? [< {invar}]? ;
 ///   [prog] [arg]* [> {outvar}]? [< {invar}]? [;]?
@@ -221,29 +221,32 @@ impl ShParser {
 /// literals (numbers, quoted strings, characters, etc.), or rust expressions
 /// delimited by braces.
 ///
+/// This macro doesn't execute the commands. It returns a vector of [`qcmd::QCmd`] which
+/// can be executed with. Alternatively, see `qshell::sh` to do the execution for you.
+///
 /// # Examples
 ///
 /// ```
-/// # use sh_macro::sh;
+/// # use sh_macro::cmd;
 /// # #[cfg(target_os = "linux")]
 /// # fn run() {
 /// let world = "world";
 /// let mut out = String::new();
-/// sh!(echo hello {world} > {out});
+/// cmd!(echo hello {world} > {out}).into_iter().for_each(|cmd| cmd.exec().unwrap());
 /// assert_eq!(out, "hello world\n");
 /// # }
 /// # run();
 /// ```
 ///
 /// ```no_run
-/// # use sh_macro::sh;
+/// # use sh_macro::cmd;
 /// # #[cfg(target_os = "linux")]
 /// # fn run() {
-/// sh! {
+/// cmd! {
 ///   echo hello;
 ///   sleep 5;
 ///   echo world;
-/// }; // prints hello, waits 5 seconds, prints world.
+/// }.into_iter().for_each(|cmd| cmd.exec().unwrap()); // prints hello, waits 5 seconds, prints world.
 /// # }
 /// # run();
 /// ```
@@ -251,26 +254,20 @@ impl ShParser {
 /// You can also use string literals as needed
 ///
 /// ```
-/// # use sh_macro::sh;
+/// # use sh_macro::cmd;
 /// # #[cfg(target_os = "linux")]
 /// # fn run() {
 /// let mut out = String::new();
-/// sh!(echo "hello world" > {out});
+/// cmd!(echo "hello world" > {out}).into_iter().for_each(|cmd| cmd.exec().unwrap());
 /// assert_eq!(out, "hello world\n");
 /// # }
 /// # run();
 /// ```
-///
-/// # Panics
-///
-/// * When the command can't be spawned
-/// * When there is an error writing into the command pipe
-/// * When the output pipe can't be decoded as a UTF-8 string.
 #[proc_macro]
-pub fn sh(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn cmd(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let stream: TokenStream = stream.into();
     let mut stream = stream.into_iter();
-    let mut cmds: Vec<Sh> = Vec::new();
+    let mut cmds: Vec<Cmd> = Vec::new();
 
     let mut parser = ShParser::new();
     while let Some(token) = stream.next() {
@@ -279,42 +276,43 @@ pub fn sh(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
             ParseResult::Done(sh) => cmds.push(sh),
         }
     }
-    if let Some(sh) = parser.finish() {
-        cmds.push(sh);
+    if let Some(cmd) = parser.finish() {
+        cmds.push(cmd);
     }
 
-    quote! {{
-
-        #(
-            {
-               #cmds
-            }
-        )*
-    };}
+    quote!(
+        {
+            let mut commands = Vec::new();
+            #(
+                commands.push({
+                    #cmds
+                });
+            )*
+            commands
+        }
+    )
     .into()
 }
 
-impl ToTokens for Sh {
+impl ToTokens for Cmd {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let cmd = &self.cmd;
         let args = &self.args;
         tokens.append_all(quote! {
-            use std::process::{Command, Stdio, ChildStdin, ChildStdout};
-            use std::io::{Read, Write};
+            use std::process::Command;
             let mut cmd = Command::new(#cmd);
             #(
                 cmd.arg(#args);
             )*
-            let mut source: Option<&String> = None;
+            let mut source: Option<&str> = None;
             let mut sink: Option<&mut String> = None;
         });
         let sink = &self.sink;
         match sink {
             Some(Sink::File(_)) => {
-                unimplemented!("Writing sh output to file is not yet implemented")
+                unimplemented!("Writing command output to file is not yet implemented")
             }
             Some(Sink::Var(ident)) => tokens.append_all(quote! {
-                cmd.stdout(Stdio::piped());
                 #ident.clear();
                 sink = Some(&mut #ident);
             }),
@@ -323,26 +321,15 @@ impl ToTokens for Sh {
         let source = &self.source;
         match source {
             Some(Source::File(_)) => {
-                unimplemented!("Reading sh input from file is not yet implemented");
+                unimplemented!("Reading command input from file is not yet implemented");
             }
             Some(Source::Var(ident)) => tokens.append_all(quote! {
-                cmd.stdin(Stdio::piped());
-                source = Some(&mut #ident);
+                source = Some(&#ident);
             }),
             None => {}
         }
         tokens.append_all(quote! {
-            let mut child = cmd.spawn().expect("Couldn't start command");
-            if let Some(source) = source {
-                let mut stdin = child.stdin.take().unwrap();
-                stdin.write_all(source.as_bytes()).expect("IO Error writing to pipe");
-            }
-            let status = child.wait().expect("Child process wasn't running?");
-            assert!(status.success());
-            if let Some(sink) = sink {
-                let mut stdout = child.stdout.take().unwrap();
-                stdout.read_to_string(sink).expect("Non-UTF8 string");
-            }
+            qcmd::QCmd::new(cmd, source, sink)
         })
     }
 }
