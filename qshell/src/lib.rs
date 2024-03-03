@@ -30,7 +30,7 @@
 //! [`cmd`].
 pub mod qcmd;
 
-pub use qcmd::QCmd;
+pub use qcmd::{QCmd, QCmdBuilder};
 pub use sh_macro::cmd;
 
 /// Similar to the lower-level [`cmd`] macro that also executes the commands in order.

@@ -169,7 +169,7 @@ impl ShParser {
             },
             ParseState::DoneSetSource => match token {
                 ShTokenTree::EndOfLine => return ParseResult::Done(self.into_sh()),
-                ShTokenTree::Source => self.state = ParseState::SetSource,
+                ShTokenTree::Sink => self.state = ParseState::SetSink,
                 other => panic!("Unexpected token: {other:?}"),
             },
         }
@@ -299,37 +299,35 @@ impl ToTokens for Cmd {
         let cmd = &self.cmd;
         let args = &self.args;
         tokens.append_all(quote! {
-            use std::process::Command;
+            use ::std::process::Command;
+            use ::qshell::QCmdBuilder;
             let mut cmd = Command::new(#cmd);
             #(
                 cmd.arg(#args);
             )*
-            let mut source: Option<&str> = None;
-            let mut sink: Option<&mut String> = None;
+            let mut builder = QCmdBuilder::new(cmd);
         });
-        let sink = &self.sink;
-        match sink {
+        match &self.sink {
             Some(Sink::File(_)) => {
                 unimplemented!("Writing command output to file is not yet implemented")
             }
             Some(Sink::Var(ident)) => tokens.append_all(quote! {
                 #ident.clear();
-                sink = Some(&mut #ident);
+                builder.sink(&mut #ident);
             }),
             None => {}
         }
-        let source = &self.source;
-        match source {
+        match &self.source {
             Some(Source::File(_)) => {
                 unimplemented!("Reading command input from file is not yet implemented");
             }
             Some(Source::Var(ident)) => tokens.append_all(quote! {
-                source = Some(&#ident);
+                builder.source(#ident);
             }),
             None => {}
         }
         tokens.append_all(quote! {
-            ::qshell::QCmd::new(cmd, source, sink)
+            builder.build()
         })
     }
 }

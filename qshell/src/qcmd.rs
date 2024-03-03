@@ -1,5 +1,6 @@
 //! Command-wrapper that simplifies piping and other operations.
 use std::{
+    borrow::Cow,
     io::{Read, Write},
     process::{Command, Stdio},
 };
@@ -9,8 +10,26 @@ use thiserror::Error;
 /// Builder object for [`QCmd`]
 pub struct QCmdBuilder<'source, 'sink> {
     cmd: Command,
-    source: Option<&'source str>,
-    sink: Option<&'sink mut String>,
+    source: Source<'source>,
+    sink: Sink<'sink>,
+}
+
+/// Command stdin sources.
+#[derive(Debug, Default)]
+pub enum Source<'source> {
+    #[default]
+    Stdin,
+    Str(Cow<'source, str>),
+    Bytes(Cow<'source, [u8]>),
+}
+
+/// Command stdout sinks
+#[derive(Debug, Default)]
+pub enum Sink<'sink> {
+    #[default]
+    Stdout,
+    Str(&'sink mut String),
+    Bytes(&'sink mut Vec<u8>),
 }
 
 impl<'source, 'sink> QCmdBuilder<'source, 'sink> {
@@ -18,20 +37,20 @@ impl<'source, 'sink> QCmdBuilder<'source, 'sink> {
     pub fn new(cmd: Command) -> Self {
         Self {
             cmd,
-            source: None,
-            sink: None,
+            source: Source::Stdin,
+            sink: Sink::Stdout,
         }
     }
 
     /// Sets the source
-    pub fn source(mut self, source: &'source str) -> Self {
-        self.source.replace(source);
+    pub fn source(&mut self, source: impl Into<Source<'source>>) -> &mut Self {
+        self.source = source.into();
         self
     }
 
     /// Sets the sink
-    pub fn sink(mut self, sink: &'sink mut String) -> Self {
-        self.sink.replace(sink);
+    pub fn sink(&mut self, sink: impl Into<Sink<'sink>>) -> &mut Self {
+        self.sink = sink.into();
         self
     }
 
@@ -46,8 +65,8 @@ impl<'source, 'sink> QCmdBuilder<'source, 'sink> {
 /// The canonical way to construct this is with the `qshell::cmd!` macro.
 pub struct QCmd<'source, 'sink> {
     cmd: Command,
-    source: Option<&'source str>,
-    sink: Option<&'sink mut String>,
+    source: Source<'source>,
+    sink: Sink<'sink>,
 }
 
 #[derive(Error, Debug)]
@@ -62,29 +81,31 @@ pub enum Error {
 
 impl<'source, 'sink> QCmd<'source, 'sink> {
     /// Creates a new QCmd with the optional source and sink.
-    pub fn new(
-        mut cmd: Command,
-        source: Option<&'source str>,
-        mut sink: Option<&'sink mut String>,
-    ) -> Self {
-        if source.is_some() {
-            cmd.stdin(Stdio::piped());
-        }
-        if let Some(sink) = sink.as_mut() {
-            sink.clear();
-            cmd.stdout(Stdio::piped());
-        }
-        cmd.stdin(Stdio::piped());
+    pub fn new(mut cmd: Command, source: Source<'source>, sink: Sink<'sink>) -> Self {
+        match &source {
+            Source::Stdin => cmd.stdin(Stdio::inherit()),
+            Source::Str(_) | Source::Bytes(_) => cmd.stdin(Stdio::piped()),
+        };
+        match &sink {
+            Sink::Stdout => cmd.stdout(Stdio::inherit()),
+            Sink::Str(_) | Sink::Bytes(_) => cmd.stdout(Stdio::piped()),
+        };
         Self { cmd, source, sink }
     }
 
     /// Executes the command piping the I/O as requested.
     pub fn exec(mut self) -> Result<(), Error> {
         let mut child = self.cmd.spawn()?;
-        if let Some(source) = self.source {
-            // This can't panic since we set it up on construction.
-            let mut stdin = child.stdin.take().unwrap();
-            stdin.write_all(source.as_bytes())?;
+        match self.source {
+            Source::Stdin => {}
+            Source::Str(source) => {
+                let mut stdin = child.stdin.take().unwrap();
+                stdin.write_all(source.as_bytes())?;
+            }
+            Source::Bytes(source) => {
+                let mut stdin = child.stdin.take().unwrap();
+                stdin.write_all(source.as_ref())?;
+            }
         }
         let status = child.wait().expect("Child process wasn't running?");
         match status.code() {
@@ -92,12 +113,49 @@ impl<'source, 'sink> QCmd<'source, 'sink> {
             Some(zero) => debug_assert!(zero == 0),
             None => return Err(Error::UnexpectedTermination),
         }
-        if let Some(sink) = self.sink {
-            // This can't panic since we set it up on construction.
-            // TODO: Accept Vec<u8> as well as String.
-            let mut stdout = child.stdout.take().unwrap();
-            stdout.read_to_string(sink).expect("Non-UTF8 string");
+        match self.sink {
+            Sink::Stdout => {}
+            Sink::Str(sink) => {
+                let mut stdout = child.stdout.take().unwrap();
+                stdout.read_to_string(sink).expect("Non-UTF8 string");
+            }
+            Sink::Bytes(sink) => {
+                let mut stdout = child.stdout.take().unwrap();
+                stdout.read_to_end(sink).expect("Non-UTF8 string");
+            }
         }
         Ok(())
+    }
+}
+
+impl<'source> From<&'source str> for Source<'source> {
+    fn from(value: &'source str) -> Self {
+        Self::Str(Cow::Borrowed(value))
+    }
+}
+impl<'source> From<String> for Source<'source> {
+    fn from(value: String) -> Self {
+        Self::Str(Cow::Owned(value))
+    }
+}
+impl<'source> From<&'source [u8]> for Source<'source> {
+    fn from(value: &'source [u8]) -> Self {
+        Self::Bytes(Cow::Borrowed(value))
+    }
+}
+impl<'source> From<Vec<u8>> for Source<'source> {
+    fn from(value: Vec<u8>) -> Self {
+        Self::Bytes(Cow::Owned(value))
+    }
+}
+
+impl<'sink> From<&'sink mut String> for Sink<'sink> {
+    fn from(value: &'sink mut String) -> Self {
+        Self::Str(value)
+    }
+}
+impl<'sink> From<&'sink mut Vec<u8>> for Sink<'sink> {
+    fn from(value: &'sink mut Vec<u8>) -> Self {
+        Self::Bytes(value)
     }
 }
