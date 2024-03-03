@@ -268,13 +268,13 @@ pub fn cmd(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     quote!(
         {
-            let mut commands = Vec::new();
+            let mut __commands = Vec::new();
             #(
-                commands.push({
+                __commands.push({
                     #cmds
                 });
             )*
-            commands.into_iter()
+            __commands.into_iter()
         }
     )
     .into()
@@ -285,20 +285,18 @@ impl ToTokens for Cmd {
         let cmd = &self.cmd;
         let args = &self.args;
         tokens.append_all(quote! {
-            use ::std::process::Command;
-            use ::sh::QCmdBuilder;
-            let mut cmd = Command::new(#cmd);
+            let mut __cmd = ::std::process::Command::new(#cmd);
             #(
-                cmd.arg(#args);
+                __cmd.arg({ #args });
             )*
-            let mut builder = QCmdBuilder::new(cmd);
+            let mut __builder = ::sh::QCmdBuilder::new(__cmd);
         });
         match &self.sink {
             Some(Sink::File(_)) => {
                 unimplemented!("Writing command output to file is not yet implemented")
             }
             Some(Sink::Expr(expr)) => tokens.append_all(quote! {
-                builder.sink(#expr);
+                __builder.sink({ #expr });
             }),
             None => {}
         }
@@ -307,12 +305,12 @@ impl ToTokens for Cmd {
                 unimplemented!("Reading command input from file is not yet implemented");
             }
             Some(Source::Expr(expr)) => tokens.append_all(quote! {
-                builder.source(#expr);
+                __builder.source({ #expr });
             }),
             None => {}
         }
         tokens.append_all(quote! {
-            builder.build()
+            __builder.build()
         })
     }
 }
