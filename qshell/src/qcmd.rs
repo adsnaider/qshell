@@ -8,6 +8,7 @@ use std::{
 use thiserror::Error;
 
 /// Builder object for [`QCmd`]
+#[derive(Debug)]
 pub struct QCmdBuilder<'source, 'sink> {
     cmd: Command,
     source: Source<'source>,
@@ -17,18 +18,24 @@ pub struct QCmdBuilder<'source, 'sink> {
 /// Command stdin sources.
 #[derive(Debug, Default)]
 pub enum Source<'source> {
+    /// Inherit the stdin pipe
     #[default]
     Stdin,
+    /// Pipe the input from a string-like object
     Str(Cow<'source, str>),
+    /// Pipe the input from a bytes-like object
     Bytes(Cow<'source, [u8]>),
 }
 
 /// Command stdout sinks
 #[derive(Debug, Default)]
 pub enum Sink<'sink> {
+    /// Inherit the stdout pipe
     #[default]
     Stdout,
+    /// Append output to a [`String`]
     Str(&'sink mut String),
+    /// Append output to a [`Vec<u8>`]
     Bytes(&'sink mut Vec<u8>),
 }
 
@@ -63,20 +70,26 @@ impl<'source, 'sink> QCmdBuilder<'source, 'sink> {
 /// A "quick" command that holds references to the source and sink.
 ///
 /// The canonical way to construct this is with the `qshell::cmd!` macro.
+#[derive(Debug)]
 pub struct QCmd<'source, 'sink> {
     cmd: Command,
     source: Source<'source>,
     sink: Sink<'sink>,
 }
 
+/// Error executing the command
 #[derive(Error, Debug)]
 pub enum Error {
+    /// IO Error
     #[error("IO Error while executing the command")]
     Io(#[from] std::io::Error),
+    /// Non-zero status code
     #[error("Command returned a non okay status")]
     StatusFailure(i32),
+    /// Unexpected termination by signal
     #[error("Process was terminated by a signal")]
     UnexpectedTermination,
+    /// Output data is not UTF8
     #[error("Piped output does not conform to UTF-8")]
     NotUtf8,
 }
