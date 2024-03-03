@@ -8,7 +8,7 @@
 //! # fn run() {
 //! let world = "world";
 //! let mut out = String::new();
-//! sh!(echo hello {world} > {out});
+//! sh!(echo hello {world} > {&mut out});
 //! assert_eq!(out, "hello world\n");
 //! # }
 //! # run();
@@ -20,7 +20,7 @@
 //! # fn run() {
 //! let world = "world";
 //! let mut out = String::new();
-//! sh!(echo hello {world} > {out});
+//! sh!(echo hello {world} > {&mut out});
 //! assert_eq!(out, "hello world\n");
 //! # }
 //! # run();

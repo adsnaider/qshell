@@ -1,4 +1,4 @@
-use proc_macro2::{Group, Ident, Literal, TokenStream, TokenTree};
+use proc_macro2::{Group, Literal, TokenStream, TokenTree};
 use quote::{quote, ToTokens, TokenStreamExt};
 
 enum Arg {
@@ -26,12 +26,12 @@ enum ParseState {
 
 enum Sink {
     File(String),
-    Var(Ident),
+    Expr(TokenStream),
 }
 
 enum Source {
     File(String),
-    Var(Ident),
+    Expr(TokenStream),
 }
 
 struct ShParser {
@@ -132,15 +132,7 @@ impl ShParser {
                 assert!(self.sink.is_none(), "Can't set the sink more than once");
                 match token {
                     ShTokenTree::Value(v) => self.sink = Some(Sink::File(v)),
-                    ShTokenTree::Expr(g) => {
-                        let mut tokens: Vec<_> = g.stream().into_iter().collect();
-                        assert_eq!(tokens.len(), 1, "Expected identifier");
-                        let token = tokens.pop().unwrap();
-                        let TokenTree::Ident(ident) = token else {
-                            panic!("Expected identifier. Got {token:?}");
-                        };
-                        self.sink = Some(Sink::Var(ident));
-                    }
+                    ShTokenTree::Expr(g) => self.sink = Some(Sink::Expr(g.stream())),
                     other => panic!("Unexpected token: {other:?}"),
                 }
                 self.state = ParseState::DoneSetSink;
@@ -150,13 +142,7 @@ impl ShParser {
                 match token {
                     ShTokenTree::Value(v) => self.source = Some(Source::File(v)),
                     ShTokenTree::Expr(g) => {
-                        let mut tokens: Vec<_> = g.stream().into_iter().collect();
-                        assert_eq!(tokens.len(), 1, "Expected identifier");
-                        let token = tokens.pop().unwrap();
-                        let TokenTree::Ident(ident) = token else {
-                            panic!("Expected identifier. Got {token:?}");
-                        };
-                        self.source = Some(Source::Var(ident));
+                        self.source = Some(Source::Expr(g.stream()));
                     }
                     other => panic!("Unexpected token: {other:?}"),
                 }
@@ -197,23 +183,23 @@ impl ShParser {
 
 /// A command-running macro.
 ///
-/// `sh` is a macro for running external commands. It provides functionality to
-/// pipe the input and output to variables as well as using rust expressions
+/// `cmd` is a macro for running external commands. It provides functionality to
+/// pipe the input and output to/from variables as well as using rust expressions
 /// as arguments to the program.
 ///
 /// The format of a `cmd` call is like so:
 ///
 /// ```ignore
-/// cmd!( [prog] [arg]* [> {outvar}]? [< {invar}]? [;]? )
+/// cmd!( [prog] [arg]* [> {outexpr}]? [< {inexpr}]? [;]? )
 /// ```
 ///
 /// Or you can create multiple commands on a single block
 ///
 /// ```ignore
 /// cmd! {
-///   [prog] [arg]* [> {outvar}]? [< {invar}]? ;
-///   [prog] [arg]* [> {outvar}]? [< {invar}]? ;
-///   [prog] [arg]* [> {outvar}]? [< {invar}]? [;]?
+///   [prog] [arg]* [> {outexpr}]? [< {inexpr}]? ;
+///   [prog] [arg]* [> {outexpr}]? [< {inexpr}]? ;
+///   [prog] [arg]* [> {outexpr}]? [< {inexpr}]? [;]?
 /// }
 /// ```
 ///
@@ -221,7 +207,7 @@ impl ShParser {
 /// literals (numbers, quoted strings, characters, etc.), or rust expressions
 /// delimited by braces.
 ///
-/// This macro doesn't execute the commands. It returns a vector of [`qshell::QCmd`] which
+/// This macro doesn't execute the commands. It returns a vector of `qshell::QCmd` which
 /// can be executed with. Alternatively, see `qshell::sh` to do the execution for you.
 ///
 /// # Examples
@@ -232,7 +218,7 @@ impl ShParser {
 /// # fn run() {
 /// let world = "world";
 /// let mut out = String::new();
-/// cmd!(echo hello {world} > {out}).into_iter().for_each(|cmd| cmd.exec().unwrap());
+/// cmd!(echo hello {world} > {&mut out}).into_iter().for_each(|cmd| cmd.exec().unwrap());
 /// assert_eq!(out, "hello world\n");
 /// # }
 /// # run();
@@ -258,7 +244,7 @@ impl ShParser {
 /// # #[cfg(target_os = "linux")]
 /// # fn run() {
 /// let mut out = String::new();
-/// cmd!(echo "hello world" > {out}).into_iter().for_each(|cmd| cmd.exec().unwrap());
+/// cmd!(echo "hello world" > {&mut out}).into_iter().for_each(|cmd| cmd.exec().unwrap());
 /// assert_eq!(out, "hello world\n");
 /// # }
 /// # run();
@@ -311,9 +297,8 @@ impl ToTokens for Cmd {
             Some(Sink::File(_)) => {
                 unimplemented!("Writing command output to file is not yet implemented")
             }
-            Some(Sink::Var(ident)) => tokens.append_all(quote! {
-                #ident.clear();
-                builder.sink(&mut #ident);
+            Some(Sink::Expr(expr)) => tokens.append_all(quote! {
+                builder.sink(#expr);
             }),
             None => {}
         }
@@ -321,8 +306,8 @@ impl ToTokens for Cmd {
             Some(Source::File(_)) => {
                 unimplemented!("Reading command input from file is not yet implemented");
             }
-            Some(Source::Var(ident)) => tokens.append_all(quote! {
-                builder.source(#ident);
+            Some(Source::Expr(expr)) => tokens.append_all(quote! {
+                builder.source(#expr);
             }),
             None => {}
         }
