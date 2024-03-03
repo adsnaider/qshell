@@ -69,7 +69,7 @@ impl<'source, 'sink> QCmdBuilder<'source, 'sink> {
 
 /// A "quick" command that holds references to the source and sink.
 ///
-/// The canonical way to construct this is with the `qshell::cmd!` macro.
+/// The canonical way to construct this is with the [`cmd!`](crate::cmd) macro.
 #[derive(Debug)]
 pub struct QCmd<'source, 'sink> {
     cmd: Command,

@@ -190,16 +190,16 @@ impl ShParser {
 /// The format of a `cmd` call is like so:
 ///
 /// ```ignore
-/// cmd!( [prog] [arg]* [> {outexpr}]? [< {inexpr}]? [;]? )
+/// cmd!( [prog] [arg]* [< {inexpr}]? [> {outexpr}]? [;]? )
 /// ```
 ///
 /// Or you can create multiple commands on a single block
 ///
 /// ```ignore
 /// cmd! {
-///   [prog] [arg]* [> {outexpr}]? [< {inexpr}]? ;
-///   [prog] [arg]* [> {outexpr}]? [< {inexpr}]? ;
-///   [prog] [arg]* [> {outexpr}]? [< {inexpr}]? [;]?
+///   [prog] [arg]* [< {inexpr}]? [> {outexpr}]? ;
+///   [prog] [arg]* [< {inexpr}]? [> {outexpr}]? ;
+///   [prog] [arg]* [< {inexpr}]? [> {outexpr}]? [;]?
 /// }
 /// ```
 ///
@@ -207,8 +207,8 @@ impl ShParser {
 /// literals (numbers, quoted strings, characters, etc.), or rust expressions
 /// delimited by braces.
 ///
-/// This macro doesn't execute the commands. It returns a vector of `qshell::QCmd` which
-/// can be executed with. Alternatively, see `qshell::sh` to do the execution for you.
+/// This macro doesn't execute the commands. It returns an iterator of `qshell::QCmd` which
+/// can be executed. Alternatively, see `qshell::sh` which executes the commands sequentially.
 ///
 /// # Examples
 ///
@@ -218,7 +218,7 @@ impl ShParser {
 /// # fn run() {
 /// let world = "world";
 /// let mut out = String::new();
-/// cmd!(echo hello {world} > {&mut out}).into_iter().for_each(|cmd| cmd.exec().unwrap());
+/// cmd!(echo hello {world} > {&mut out}).for_each(|cmd| cmd.exec().unwrap());
 /// assert_eq!(out, "hello world\n");
 /// # }
 /// # run();
@@ -232,7 +232,7 @@ impl ShParser {
 ///   echo hello;
 ///   sleep 5;
 ///   echo world;
-/// }.into_iter().for_each(|cmd| cmd.exec().unwrap()); // prints hello, waits 5 seconds, prints world.
+/// }.for_each(|cmd| cmd.exec().unwrap()); // prints hello, waits 5 seconds, prints world.
 /// # }
 /// # run();
 /// ```
@@ -244,7 +244,7 @@ impl ShParser {
 /// # #[cfg(target_os = "linux")]
 /// # fn run() {
 /// let mut out = String::new();
-/// cmd!(echo "hello world" > {&mut out}).into_iter().for_each(|cmd| cmd.exec().unwrap());
+/// cmd!(echo "hello world" > {&mut out}).for_each(|cmd| cmd.exec().unwrap());
 /// assert_eq!(out, "hello world\n");
 /// # }
 /// # run();
@@ -274,7 +274,7 @@ pub fn cmd(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     #cmds
                 });
             )*
-            commands
+            commands.into_iter()
         }
     )
     .into()

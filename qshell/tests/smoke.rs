@@ -79,7 +79,6 @@ fn error_conditions() {
     let bytes = "0012345678910";
     let mut out = String::new();
     let err = cmd!(xxd "-r" "-p" < {bytes} > {&mut out})
-        .into_iter()
         .next()
         .unwrap()
         .exec()
