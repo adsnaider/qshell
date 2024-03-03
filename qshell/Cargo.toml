@@ -11,4 +11,4 @@ repository = "https://github.com/adsnaider/sh"
 
 [dependencies]
 sh-macro = { version = "0.1.1", path = "../sh-macro" }
-qcmd = { version = "0.1.1", path = "../qcmd" }
+thiserror = "1.0"

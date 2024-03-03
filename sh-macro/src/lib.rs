@@ -221,7 +221,7 @@ impl ShParser {
 /// literals (numbers, quoted strings, characters, etc.), or rust expressions
 /// delimited by braces.
 ///
-/// This macro doesn't execute the commands. It returns a vector of [`qcmd::QCmd`] which
+/// This macro doesn't execute the commands. It returns a vector of [`qshell::QCmd`] which
 /// can be executed with. Alternatively, see `qshell::sh` to do the execution for you.
 ///
 /// # Examples
@@ -329,7 +329,7 @@ impl ToTokens for Cmd {
             None => {}
         }
         tokens.append_all(quote! {
-            qcmd::QCmd::new(cmd, source, sink)
+            ::qshell::QCmd::new(cmd, source, sink)
         })
     }
 }

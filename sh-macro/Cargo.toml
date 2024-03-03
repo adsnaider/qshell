@@ -16,4 +16,6 @@ proc-macro = true
 quote = "1.0"
 proc-macro2 = "1.0"
 litrs = "0.4"
-qcmd = { version = "0.1.1", path = "../qcmd" }
+
+[dev-dependencies]
+qshell = { version = "0.1.1", path = "../qshell" }

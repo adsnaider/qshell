@@ -28,9 +28,12 @@
 //!
 //! For more information, see the documentation for
 //! [`cmd`].
+pub mod qcmd;
+
 pub use qcmd::QCmd;
 pub use sh_macro::cmd;
 
+/// Similar to the lower-level [`cmd`] macro that also executes the commands in order.
 #[macro_export]
 macro_rules! sh {
     ($($stream:tt)*) => {
@@ -38,42 +41,4 @@ macro_rules! sh {
             .into_iter()
             .for_each(|cmd| cmd.exec().unwrap());
     };
-}
-
-#[cfg(test)]
-#[cfg(target_os = "linux")]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn echo() {
-        sh!(echo hello world);
-        let mut out = String::new();
-        sh!(echo hello world > {out});
-        assert_eq!(out, "hello world\n");
-    }
-
-    #[test]
-    fn multiple() {
-        cmd! {
-            echo hello world;
-            echo hello world;
-        };
-    }
-
-    #[test]
-    fn literals() {
-        let mut out = String::new();
-        sh!(echo "hello world" > {out});
-        assert_eq!(out, "hello world\n");
-
-        sh!(echo 1 2 3u8 > {out});
-        assert_eq!(out, "1 2 3u8\n");
-
-        sh!(echo 1.23 > {out});
-        assert_eq!(out, "1.23\n");
-
-        sh!(echo true > {out});
-        assert_eq!(out, "true\n");
-    }
 }
