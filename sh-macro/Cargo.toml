@@ -1,6 +1,6 @@
 [package]
 name = "sh-macro"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 keywords = ["cli", "macro", "shell"]
@@ -18,4 +18,4 @@ proc-macro2 = "1.0"
 litrs = "0.4"
 
 [dev-dependencies]
-qshell = { version = "0.1.1", path = "../qshell" }
+sh = { version = "0.2.0", path = "../sh" }

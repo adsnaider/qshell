@@ -21,14 +21,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "qshell"
-version = "0.1.1"
-dependencies = [
- "sh-macro",
- "thiserror",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -38,13 +30,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "sh"
+version = "0.2.0"
+dependencies = [
+ "sh-macro",
+ "thiserror",
+]
+
+[[package]]
 name = "sh-macro"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "litrs",
  "proc-macro2",
- "qshell",
  "quote",
+ "sh",
 ]
 
 [[package]]

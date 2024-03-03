@@ -207,8 +207,8 @@ impl ShParser {
 /// literals (numbers, quoted strings, characters, etc.), or rust expressions
 /// delimited by braces.
 ///
-/// This macro doesn't execute the commands. It returns an iterator of `qshell::QCmd` which
-/// can be executed. Alternatively, see `qshell::sh` which executes the commands sequentially.
+/// This macro doesn't execute the commands. It returns an iterator of `sh::QCmd` which
+/// can be executed. Alternatively, see `sh::sh` which executes the commands sequentially.
 ///
 /// # Examples
 ///
@@ -286,7 +286,7 @@ impl ToTokens for Cmd {
         let args = &self.args;
         tokens.append_all(quote! {
             use ::std::process::Command;
-            use ::qshell::QCmdBuilder;
+            use ::sh::QCmdBuilder;
             let mut cmd = Command::new(#cmd);
             #(
                 cmd.arg(#args);

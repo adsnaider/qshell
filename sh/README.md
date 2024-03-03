@@ -1,4 +1,4 @@
-# `qshell`: Command-running macro
+# `sh`: Command-running macro
 
 This crate provides two macros for facilitating interactions with the underlying system.
 The [`cmd`] macro is the lower level macro that implements a DSL to construct
@@ -11,7 +11,7 @@ The DSL allows for easily piping data into and out of the commands from [`String
 # Examples
 
 ```rust
-# use qshell::sh;
+# use sh::sh;
 # #[cfg(target_os = "linux")]
 # fn run() {
 let world = "world";

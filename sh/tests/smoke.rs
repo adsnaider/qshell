@@ -1,4 +1,4 @@
-use qshell::{cmd, sh};
+use sh::{cmd, sh};
 
 #[test]
 fn echo() {
@@ -83,5 +83,5 @@ fn error_conditions() {
         .unwrap()
         .exec()
         .unwrap_err();
-    assert!(matches!(err, qshell::qcmd::Error::NotUtf8));
+    assert!(matches!(err, sh::qcmd::Error::NotUtf8));
 }

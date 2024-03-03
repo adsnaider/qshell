@@ -1,6 +1,6 @@
 [package]
-name = "qshell"
-version = "0.1.1"
+name = "sh"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 keywords = ["cli", "macro", "shell"]
@@ -10,5 +10,5 @@ repository = "https://github.com/adsnaider/sh"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sh-macro = { version = "0.1.1", path = "../sh-macro" }
+sh-macro = { version = "0.2.0", path = "../sh-macro" }
 thiserror = "1.0"
