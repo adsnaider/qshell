@@ -73,3 +73,16 @@ fn sink_types() {
     assert_eq!(out, b"hello world\n");
     out.clear();
 }
+
+#[test]
+fn error_conditions() {
+    let bytes = "0012345678910";
+    let mut out = String::new();
+    let err = cmd!(xxd "-r" "-p" < {bytes} > {&mut out})
+        .into_iter()
+        .next()
+        .unwrap()
+        .exec()
+        .unwrap_err();
+    assert!(matches!(err, qshell::qcmd::Error::NotUtf8));
+}

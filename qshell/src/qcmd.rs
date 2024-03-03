@@ -1,7 +1,7 @@
 //! Command-wrapper that simplifies piping and other operations.
 use std::{
     borrow::Cow,
-    io::{Read, Write},
+    io::{ErrorKind, Read, Write},
     process::{Command, Stdio},
 };
 
@@ -77,6 +77,8 @@ pub enum Error {
     StatusFailure(i32),
     #[error("Process was terminated by a signal")]
     UnexpectedTermination,
+    #[error("Piped output does not conform to UTF-8")]
+    NotUtf8,
 }
 
 impl<'source, 'sink> QCmd<'source, 'sink> {
@@ -116,12 +118,19 @@ impl<'source, 'sink> QCmd<'source, 'sink> {
         match self.sink {
             Sink::Stdout => {}
             Sink::Str(sink) => {
+                // This can't fail due to QCmd::new
                 let mut stdout = child.stdout.take().unwrap();
-                stdout.read_to_string(sink).expect("Non-UTF8 string");
+                if let Err(e) = stdout.read_to_string(sink) {
+                    match e.kind() {
+                        ErrorKind::InvalidData => return Err(Error::NotUtf8),
+                        _ => return Err(Error::Io(e)),
+                    }
+                }
             }
             Sink::Bytes(sink) => {
+                // This can't fail due to QCmd::new
                 let mut stdout = child.stdout.take().unwrap();
-                stdout.read_to_end(sink).expect("Non-UTF8 string");
+                stdout.read_to_end(sink)?;
             }
         }
         Ok(())
