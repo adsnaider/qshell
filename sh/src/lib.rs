@@ -11,7 +11,7 @@ pub use sh_macro::cmd;
 #[macro_export]
 macro_rules! sh {
     ($($stream:tt)*) => {
-        sh_macro::cmd!($($stream)*)
+        $crate::cmd!($($stream)*)
             .for_each(|cmd| cmd.exec().expect("Command execution failure"));
     };
 }
