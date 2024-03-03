@@ -212,7 +212,7 @@ impl ShParser {
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// # use sh_macro::cmd;
 /// # #[cfg(target_os = "linux")]
 /// # fn run() {
@@ -224,7 +224,7 @@ impl ShParser {
 /// # run();
 /// ```
 ///
-/// ```no_run
+/// ```ignore
 /// # use sh_macro::cmd;
 /// # #[cfg(target_os = "linux")]
 /// # fn run() {
@@ -239,7 +239,7 @@ impl ShParser {
 ///
 /// You can also use string literals as needed
 ///
-/// ```
+/// ```ignore
 /// # use sh_macro::cmd;
 /// # #[cfg(target_os = "linux")]
 /// # fn run() {

@@ -44,7 +44,6 @@ dependencies = [
  "litrs",
  "proc-macro2",
  "quote",
- "sh",
 ]
 
 [[package]]
